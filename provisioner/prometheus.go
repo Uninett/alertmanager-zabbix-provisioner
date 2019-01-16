@@ -3,19 +3,30 @@ package provisioner
 import (
 	"encoding/json"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/net/html"
 	"io/ioutil"
 	"net/http"
-	"strings"
+	"time"
 )
 
 type PrometheusRule struct {
-	Name        string            `json:"name"`
+	Name string `json:"name"`
+	Query string `json:"query"`
+	Duration int `json:"duration"`
+	Labels map[string]string `json:"severity"`
 	Annotations map[string]string `json:"annotations"`
+	//Health string `json:"health"`
+	Type string `json:"type"`
 }
 
 type PrometheusResponse struct {
-	Rules []PrometheusRule `json:"rules"`
+	Status string `json:"status"`
+	Data struct {
+		Groups []struct {
+			Name string `json:"name"`
+			Rules []PrometheusRule `json:"rules"`
+			Interval int `json:"interval"`
+		} `json:"groups"`
+	} `json:"data"`
 }
 
 func GetRulesFromJSON() []PrometheusRule {
@@ -30,57 +41,53 @@ func GetRulesFromJSON() []PrometheusRule {
 		log.Fatalf("Can't read the rules file: %s", err)
 	}
 
-	return response.Rules
+	rules := []PrometheusRule{}
+
+	for _, group := range response.Data.Groups {
+		for _, rule := range group.Rules {
+			rules = append(rules, rule)
+		}
+	}
+
+	return rules
 }
 
 func GetRulesFromURL(url string) []PrometheusRule {
-	resp, err := http.Get(url)
+	promClient := http.Client{
+		Timeout: time.Second * 2, // Maximum of 2 secs
+	}
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	tokenizer := html.NewTokenizer(resp.Body)
+	req.Header.Set("User-Agent", "prom-rules-scraper")
 
-	var key string
-	var rule PrometheusRule
+	res, getErr := promClient.Do(req)
+	if getErr != nil {
+		log.Fatal(getErr)
+	}
+
+	body, readErr := ioutil.ReadAll(res.Body)
+	if readErr != nil {
+		log.Fatal(readErr)
+	}
+
+	promResponse := PrometheusResponse{}
+
+	jsonErr := json.Unmarshal(body, &promResponse)
+	if jsonErr != nil {
+		log.Fatal(jsonErr)
+	}
+
 	rules := []PrometheusRule{}
 
-	for {
-		tokenType := tokenizer.Next()
-		switch tokenType {
-		case html.ErrorToken:
-			//log.Info(rules)
-			return rules
-		case html.TextToken:
-			str := string(tokenizer.Text())
-			if strings.HasPrefix(str, "ALERT") {
-				tokenizer.Next()
-				tokenizer.Next()
-				rule = PrometheusRule{
-					Name:        string(tokenizer.Text()),
-					Annotations: map[string]string{},
-				}
-				rules = append(rules, rule)
-				//log.Infof("Rule: %s", string(tokenizer.Text()))
-			} else if strings.Contains(str, "ANNOTATIONS") {
-				//log.Info(str)
-				raw := strings.SplitAfter(str, "ANNOTATIONS")
-				splits := strings.Split(raw[1], "\"")
-				//log.Info(splits)
-				for index, split := range splits {
-					trimmed := strings.Trim(split, " {}")
-					if len(trimmed) != 0 {
-						if index%2 == 0 {
-							replacer := strings.NewReplacer("=", "", " ", "", ",", "")
-							//log.Printf("Key: %s", replacer.Replace(trimmed))
-							key = replacer.Replace(trimmed)
-						} else {
-							//log.Printf("Value: %s", trimmed)
-							rule.Annotations[key] = trimmed
-						}
-					}
-				}
-			}
+	for _, group := range promResponse.Data.Groups {
+		for _, rule := range group.Rules {
+			rules = append(rules, rule)
 		}
 	}
+
+	return rules
 }
