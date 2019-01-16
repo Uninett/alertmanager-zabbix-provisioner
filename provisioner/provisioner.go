@@ -212,6 +212,10 @@ func (p *Provisioner) FillFromPrometheus() {
 				continue
 			}
 
+			if strings.ToLower(rule.Type) != "alerting" {
+				continue
+			}
+
 			key := fmt.Sprintf("prometheus.%s", strings.ToLower(rule.Name))
 
 			newItem := &CustomItem{
