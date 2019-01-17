@@ -108,7 +108,7 @@ func (p *Provisioner) GetPrometheusRules() {
 		}
 
 	}
-	dataItems := make(zabbix_sender.DataItems, 0)
+	var dataItems zabbix_sender.DataItems
 
 	for k, v := range host_rules {
 		json_data, _ := json.Marshal(ZabbixDiscovery{Data: v})
