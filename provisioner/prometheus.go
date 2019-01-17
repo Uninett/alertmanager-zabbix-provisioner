@@ -9,10 +9,10 @@ import (
 )
 
 type PrometheusRule struct {
-	Name string `json:"name"`
-	Query string `json:"query"`
-	Duration int `json:"duration"`
-	Labels map[string]string `json:"severity"`
+	Name        string            `json:"name"`
+	Query       string            `json:"query"`
+	Duration    int               `json:"duration"`
+	Labels      map[string]string `json:"severity"`
 	Annotations map[string]string `json:"annotations"`
 	//Health string `json:"health"`
 	Type string `json:"type"`
@@ -20,36 +20,13 @@ type PrometheusRule struct {
 
 type PrometheusResponse struct {
 	Status string `json:"status"`
-	Data struct {
+	Data   struct {
 		Groups []struct {
-			Name string `json:"name"`
-			Rules []PrometheusRule `json:"rules"`
-			Interval int `json:"interval"`
+			Name     string           `json:"name"`
+			Rules    []PrometheusRule `json:"rules"`
+			Interval int              `json:"interval"`
 		} `json:"groups"`
 	} `json:"data"`
-}
-
-func GetRulesFromJSON() []PrometheusRule {
-	rulesFile, err := ioutil.ReadFile("rules2.json")
-	if err != nil {
-		log.Fatalf("Can't open the rules file: %s", err)
-	}
-
-	response := PrometheusResponse{}
-	err = json.Unmarshal(rulesFile, &response)
-	if err != nil {
-		log.Fatalf("Can't read the rules file: %s", err)
-	}
-
-	rules := []PrometheusRule{}
-
-	for _, group := range response.Data.Groups {
-		for _, rule := range group.Rules {
-			rules = append(rules, rule)
-		}
-	}
-
-	return rules
 }
 
 func GetRulesFromURL(url string) []PrometheusRule {
