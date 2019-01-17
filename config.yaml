@@ -7,5 +7,5 @@ rulesPollingInterval: 3600
 # Addr:port to Zabbix for where to send trapper discovery items
 zabbixAddr: localhost:10051
 
-# Zabbix items key prefix, keys will be zabbixKeyPrefix.alertname
-zabbixKeyPrefix: prometheus
+# Zabbix discovery rule key
+zabbixDiscoveryRuleKey: test

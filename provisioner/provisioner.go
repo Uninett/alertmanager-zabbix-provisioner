@@ -20,8 +20,8 @@ type ProvisionerConfig struct {
 	RulesUrl             string `yaml:"rulesUrl"`
 	RulesPollingInterval int    `yaml:"rulesPollingTime"`
 
-	ZabbixAddr      string `yaml:"zabbixAddr"`
-	ZabbixKeyPrefix string `yaml:"zabbixKeyPrefix"`
+	ZabbixAddr             string `yaml:"zabbixAddr"`
+	ZabbixDiscoveryRuleKey string `yaml:"zabbixDiscoveryRuleKey"`
 }
 
 type ZabbixDiscovery struct {
@@ -50,9 +50,10 @@ func ConfigFromFile(filename string) (cfg *ProvisionerConfig, err error) {
 
 	// Default values
 	config := ProvisionerConfig{
-		RulesUrl:             "https://127.0.0.1:9090/api/v1/rules",
-		RulesPollingInterval: 3600,
-		ZabbixAddr:           "127.0.0.1:10051",
+		RulesUrl:               "https://127.0.0.1:9090/api/v1/rules",
+		RulesPollingInterval:   3600,
+		ZabbixAddr:             "127.0.0.1:10051",
+		ZabbixDiscoveryRuleKey: "test",
 	}
 
 	err = yaml.Unmarshal(configFile, &config)
@@ -116,7 +117,7 @@ func (p *Provisioner) GetPrometheusRules() {
 			Hostname:  k,
 			Value:     string(json_data),
 			Timestamp: 0,
-			Key:       "test",
+			Key:       p.Config.ZabbixDiscoveryRuleKey,
 		}
 
 		dataItems = append(dataItems, zabbix_payload)
