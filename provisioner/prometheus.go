@@ -40,8 +40,13 @@ func GetRulesFromURL(url string) []PrometheusRule {
 	}
 
 	req.Header.Set("User-Agent", "prom-rules-scraper")
+	req.Close = true
 
 	res, getErr := promClient.Do(req)
+	if res != nil {
+		defer res.Body.Close()
+	}
+
 	if getErr != nil {
 		log.Fatal(getErr)
 	}
